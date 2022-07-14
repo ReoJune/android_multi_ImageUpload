@@ -8,3 +8,4 @@ Library
 - okhttp3
 - dagger hilt
 - coroutines
+- compressor
