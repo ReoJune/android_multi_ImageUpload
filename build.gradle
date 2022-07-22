@@ -14,6 +14,7 @@ buildscript {
     repositories {
         google()
         gradlePluginPortal()
+        mavenCentral()
 
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url 'https://jitpack.io' }
@@ -33,6 +34,5 @@ plugins {
 apply plugin: 'maven-publish'
 
 task clean(type: Delete) {
-
     delete rootProject.buildDir
 }
