@@ -3,9 +3,11 @@ Architecture pattern
 
 Library
 - AAC jetpack
-- imagepicker
+- imagepicker         
 - retrofit 
 - okhttp3
 - dagger hilt
 - coroutines
 - compressor
+- glide
+- custom progressbar  
