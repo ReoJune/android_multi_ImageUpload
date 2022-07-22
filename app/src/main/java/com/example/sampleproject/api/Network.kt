@@ -26,7 +26,7 @@ interface Network {
 
         fun create(): Network {
 
-            var client = if (BuildConfig.IS_DEBUG){
+            val client = if (BuildConfig.IS_DEBUG){
                 OkHttpClient.Builder()
                 .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY})
                 .build()

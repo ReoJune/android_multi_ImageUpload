@@ -2,4 +2,6 @@
 <resources>
     <dimen name="item_country_height">100dp</dimen>
     <dimen name="padding_common">8dp</dimen>
+    <dimen name="spacing">10dp</dimen>
+    <dimen name="image_size">100dp</dimen>
 </resources>

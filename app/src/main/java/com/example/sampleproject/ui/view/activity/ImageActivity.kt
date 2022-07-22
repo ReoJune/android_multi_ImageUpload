@@ -1,27 +1,31 @@
 package com.example.sampleproject.ui.view.activity
 
 import android.Manifest
-import android.app.Activity
+import android.database.Cursor
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.sampleproject.R
-import com.example.sampleproject.databinding.ImgActivityBinding
+import com.example.sampleproject.adapter.GridAutofitLayoutManager
+import com.example.sampleproject.adapter.ImageAdapter
+import com.example.sampleproject.databinding.ImgMultiActivityBinding
 import com.example.sampleproject.util.Status
-import com.example.sampleproject.util.getFile
 import com.example.sampleproject.viewmodel.ImageViewModel
-import com.github.dhaval2404.imagepicker.ImagePicker
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import com.nguyenhoanglam.imagepicker.model.Image
+import com.nguyenhoanglam.imagepicker.model.ImagePickerConfig
+import com.nguyenhoanglam.imagepicker.model.RootDirectory
+import com.nguyenhoanglam.imagepicker.ui.imagepicker.registerImagePicker
 import dagger.hilt.android.AndroidEntryPoint
 import id.zelory.compressor.Compressor.compress
 import kotlinx.coroutines.launch
@@ -30,26 +34,66 @@ import java.io.File
 @AndroidEntryPoint
 class ImageActivity : AppCompatActivity(){
 
-    private lateinit var binding: ImgActivityBinding
+    private lateinit var binding: ImgMultiActivityBinding
     private val imageViewModel: ImageViewModel by viewModels()
+
+    private var imagesArray     = ArrayList<Image>()
+    private var imagesArrayFile = ArrayList<File>()
+    private var imagesArrayCompressFile = ArrayList<File>()
+    private var imgAdapter: ImageAdapter? = null
+
+    private val launcher = registerImagePicker {
+        if (it.isNotEmpty()){
+            imagesArray = it
+            imgAdapter!!.setData(it)
+
+            listClear()
+            lifecycleScope.launch {
+                for(i in imagesArray.indices){
+                    imagesArrayFile.add(i, File(getRealPathFromURI(imagesArray[i].uri)))
+                    imagesArrayCompressFile.add(i,compress(applicationContext, imagesArrayFile[i]))
+                }
+                imageViewModel.sendImageFile(imagesArrayCompressFile)
+            }
+        }
+    }
+
+    private fun listClear() {
+        if (imagesArrayFile.isNotEmpty()) {
+            imagesArrayFile.clear()
+        }
+
+        if (imagesArrayCompressFile.isNotEmpty()){
+            imagesArrayCompressFile.clear()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ImgActivityBinding.inflate(layoutInflater)
+        binding = ImgMultiActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.previewImage.setImageResource(R.drawable.ic_launcher_foreground)
+        imgAdapter = ImageAdapter(this)
 
+        binding.recyclerView.apply {
+            setHasFixedSize(true)
+            val columnWidth = context.resources.getDimension(R.dimen.image_size).toInt()
+            layoutManager =  GridAutofitLayoutManager(
+                this@ImageActivity,
+                columnWidth
+            )
+            adapter = imgAdapter
+        }
+
+
+        binding.progressBar.bringToFront()
         binding.pickImageButton.setOnClickListener {
 
             Dexter.withContext(this).withPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                 .withListener(object : PermissionListener {
+
                     override fun onPermissionGranted(p0: PermissionGrantedResponse?) {
-                        ImagePicker.with(this@ImageActivity)
-                            .galleryOnly().compress(1024)
-                            .createIntent {
-                                    intent -> startForProfileImageResult.launch(intent)
-                            }
+                            imageSetting()
                     }
 
                     override fun onPermissionRationaleShouldBeShown(
@@ -60,6 +104,7 @@ class ImageActivity : AppCompatActivity(){
                     override fun onPermissionDenied(p0: PermissionDeniedResponse?) {}
 
                 }).check()
+
         }
 
         lifecycleScope.launchWhenStarted {
@@ -67,9 +112,9 @@ class ImageActivity : AppCompatActivity(){
                 when (it.status) {
 
                     Status.SUCCESS -> {
+                        Toast.makeText(applicationContext, "이미지 업로드 완료", Toast.LENGTH_LONG).show()
                         binding.progressBar.visibility = View.GONE
 
-                        Toast.makeText(applicationContext, "Image uploaded successfully", Toast.LENGTH_LONG).show()
                     }
 
                     Status.LOADING -> {
@@ -77,6 +122,7 @@ class ImageActivity : AppCompatActivity(){
                     }
 
                     Status.ERROR -> {
+                        Toast.makeText(applicationContext, "이미지 업로드 실패", Toast.LENGTH_LONG).show()
                         binding.progressBar.visibility = View.GONE
                     }
                 }
@@ -84,40 +130,58 @@ class ImageActivity : AppCompatActivity(){
 
             imageViewModel.imageFile.observe(this@ImageActivity) {
                 binding.uploadImgBtn.setOnClickListener { _ ->
-//                    it.getContentIfNotHandled()?.let {
-//                        imageViewModel.uploadImage(it)
-//                    }
-
-                    imageViewModel.uploadImage(it.peekContent())
+                    imageViewModel.uploadImage(it)
                 }
             }
         }
     }
 
-    private val startForProfileImageResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-            val resultCode = result.resultCode
-            val data = result.data
+    private fun imageSetting() {
+        val config = ImagePickerConfig(
+            statusBarColor = "#00796B",
+            isLightStatusBar = false,
+            toolbarColor = "#009688",
+            toolbarTextColor = "#FFFFFF",
+            toolbarIconColor = "#FFFFFF",
+            backgroundColor = "#000000",
+            progressIndicatorColor = "#009688",
+            selectedIndicatorColor = "#2196F3",
+            isCameraOnly = false,
+            isMultipleMode = true,
+            isFolderMode = true,
+            doneTitle = "DONE",
+            folderTitle = "Albums",
+            imageTitle = "Photos",
+            isShowCamera = true,
+            isShowNumberIndicator = true,
+            isAlwaysShowDoneButton = true,
+            rootDirectory = RootDirectory.DCIM,
+            subDirectory = "Example",
+            maxSize = 20,
+            limitMessage = "20장의 사진만 선택가능",
+            selectedImages = imagesArray
+        )
 
-            when (resultCode) {
-                Activity.RESULT_OK -> {
+        launcher.launch(config)
+    }
 
-                    lifecycleScope.launch {
-                        val fileUri = data?.data
+    private fun getRealPathFromURI(contentUri: Uri): String {
+        var cursor: Cursor? = null
+        return try {
+            val proj = arrayOf(MediaStore.Images.Media.DATA)
 
-                        binding.previewImage.setImageURI(fileUri)
+            cursor = contentResolver.query(contentUri, proj, null, null, null)
 
-                        var file: File = getFile(data)!!
+            val columnIndex: Int = cursor!!.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
 
-                        var compressedImageFile = compress(applicationContext, file)
-                        imageViewModel.sendImageFile(compressedImageFile)
-                    }
-                }
-                ImagePicker.RESULT_ERROR -> {
-                    Toast.makeText(applicationContext, ImagePicker.getError(data), Toast.LENGTH_SHORT).show()
-                }else -> {
-                    Toast.makeText(applicationContext, "Task Cancelled", Toast.LENGTH_SHORT).show()
-                }
-            }
+            cursor.moveToFirst()
+
+            cursor.getString(columnIndex)
+
+        } catch (e: Exception) {
+            ""
+        } finally {
+            cursor?.close()
         }
+    }
 }

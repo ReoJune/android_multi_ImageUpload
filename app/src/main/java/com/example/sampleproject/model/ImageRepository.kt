@@ -11,6 +11,7 @@ class ImageRepository @Inject constructor(private val network: Network) {
         profileImageBody: MultipartBody.Part,
         preset: RequestBody
     ): Response<Any> {
-        return network.uploadImage(profileImageBody, preset)
+        return network.uploadImage(
+            profileImageBody, preset)
     }
 }

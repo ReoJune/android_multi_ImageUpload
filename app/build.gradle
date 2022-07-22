@@ -54,19 +54,15 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle"
-    implementation "androidx.activity:activity-ktx:1.4.0"
+    implementation "androidx.activity:activity-ktx:1.5.0"
     implementation "androidx.multidex:multidex:2.0.1"
     implementation "androidx.paging:paging-runtime-ktx:3.1.1"
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'com.google.android.material:material:1.6.1'
 
-    //image from gallery and permissions
-    implementation 'com.github.dhaval2404:imagepicker:2.1'
-    implementation 'com.karumi:dexter:6.2.2'
 
-    implementation 'id.zelory:compressor:3.0.1'
 
-    //swiperefresh
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+
 
     //test
     testImplementation 'junit:junit:4.13.2'
@@ -93,5 +89,11 @@ dependencies {
     //coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines"
+
+    //github etc
+    implementation 'com.github.nguyenhoanglam:ImagePicker:1.5.3'
+    implementation 'com.agrawalsuneet.androidlibs:dotsloader:1.4'
+    implementation 'com.karumi:dexter:6.2.3'
+    implementation 'id.zelory:compressor:3.0.1'
 }
 
