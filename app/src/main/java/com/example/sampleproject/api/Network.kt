@@ -20,8 +20,7 @@ import javax.net.ssl.X509TrustManager
 
 interface Network {
 
-//    @POST("<your cloudName>/upload")
-    @POST("dhzzjfcao/upload")
+    @POST("<your cloudName>/upload")
     @Multipart
     suspend fun uploadImage(
         @Part file: MultipartBody.Part,

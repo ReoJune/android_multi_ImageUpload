@@ -37,7 +37,7 @@ class ImageViewModel  @Inject constructor(
 
             viewModelScope.launch {
                 val profileImageBody = arrayListOf<MultipartBody.Part>()
-                val preset = getMultiPartFormRequestBody("qocfuip6")
+                val preset = getMultiPartFormRequestBody("your cloudName")
 
                 for(i in file.indices){
                     try {
