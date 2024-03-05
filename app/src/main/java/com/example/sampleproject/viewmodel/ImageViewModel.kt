@@ -1,5 +1,6 @@
 package com.example.sampleproject.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -13,7 +14,10 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.File
+import java.net.SocketTimeoutException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,28 +37,45 @@ class ImageViewModel  @Inject constructor(
 
             viewModelScope.launch {
                 val profileImageBody = arrayListOf<MultipartBody.Part>()
-                val preset = getMultiPartFormRequestBody("<your preset>")
+                val preset = getMultiPartFormRequestBody("qocfuip6")
 
                 for(i in file.indices){
-                    val profileImage: RequestBody = file[i].asRequestBody("image/jpg".toMediaTypeOrNull())
-                    val emptyPart = MultipartBody.Part.createFormData("file",file[i].name,profileImage)
-                    profileImageBody.add(emptyPart)
+                    try {
+                        val requestBody: RequestBody = file[i].asRequestBody("image/*".toMediaTypeOrNull())
+                        val emptyPart = MultipartBody.Part.createFormData("file",file[i].name,requestBody)
+                        profileImageBody.add(emptyPart)
 
-                    imageModel.getUploadImage(profileImageBody[i],preset).let {
-                        if (it.isSuccessful) {
-                            if(file.size == profileImageBody.size)
-                                _resource.postValue(Resource.success(false,it.body()))
-                        }else {
-                            _resource.postValue(Resource.error(it.errorBody().toString(), false, null))
+                        imageModel.getUploadImage(profileImageBody[i],preset).let {
+                            if (it.isSuccessful) {
+                                if(file.size == profileImageBody.size)
+                                    _resource.postValue(Resource.success(false,it.body()))
+                            }else {
+                                _resource.postValue(Resource.error(errorBodyParsing(it.errorBody()?.string()!!), false, null))
+                            }
                         }
+                    }catch (e: Exception){
+                        _resource.postValue(Resource.error("$e", false, null))
+                    }catch (e: SocketTimeoutException){
+
+                        _resource.postValue(Resource.error("$e", false, null))
                     }
                 }
             }
         }
     }
 
-    private fun getMultiPartFormRequestBody(tag: String?): RequestBody {
-        return tag!!.toRequestBody(MultipartBody.FORM)
+    private fun errorBodyParsing(errorStr: String): String{
+        val errorBodyStr  = try {
+            val errorInfo = JSONObject(errorStr).getJSONObject("error")
+            return errorInfo.getString("message")
+        } catch (e: JSONException) {
+            Log.d("errorBodyParsing", "error:$e").toString()
+        }
+        return errorBodyStr
+    }
+
+    private fun getMultiPartFormRequestBody(tag: String): RequestBody {
+        return tag.toRequestBody(MultipartBody.FORM)
     }
 
     fun sendImageFile(file: ArrayList<File>) {
